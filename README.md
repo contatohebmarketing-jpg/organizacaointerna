@@ -15,6 +15,7 @@ do time = resultado da empresa.
 
 ## Índice
 
+- [`notion-workspace.md`](notion-workspace.md) — mapa do workspace Notion (10 espaços + bases)
 - [`01-norte-t3.md`](01-norte-t3.md) — metas, marcos e missões do trimestre
 - [`02-mapa-operacao.md`](02-mapa-operacao.md) — time, 3 processos, pontuais e gargalos
 - [`03-ritos-de-gestao.md`](03-ritos-de-gestao.md) — cadência de reuniões + pautas prontas

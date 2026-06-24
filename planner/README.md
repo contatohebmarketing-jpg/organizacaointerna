@@ -50,3 +50,5 @@ não é preciso rodar nada de banco manualmente.
 - Sincronizar com o Notion (espelhar tarefas/projetos).
 - Arrastar para reordenar dentro das colunas do kanban.
 - Notificações/lembretes de prazos.
+
+<!-- build: republicar com Root Directory=planner -->

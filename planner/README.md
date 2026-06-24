@@ -12,11 +12,13 @@ pronto pra publicar na web.
 ```bash
 cd planner
 npm install
-cp .env.example .env        # já vem apontando para o SQLite local
-npm run db:push             # cria as tabelas no banco local (prisma/dev.db)
-npm run db:seed             # opcional: popula com dados de exemplo
+cp .env.example .env        # aponta para o SQLite local
+npm run db:reset            # cria as tabelas e popula com dados de exemplo
 npm run dev                 # http://localhost:3000
 ```
+
+O `build` já aplica o schema e popula o banco automaticamente (idempotente):
+seed só roda se o banco estiver vazio; use `npm run db:reset` para forçar.
 
 ## Telas
 
@@ -31,24 +33,17 @@ npm run dev                 # http://localhost:3000
 
 ## Publicar na web (Vercel + Turso)
 
-1. **Criar o banco Turso** (grátis):
-   ```bash
-   curl -sSfL https://get.tur.so/install.sh | bash
-   turso auth signup
-   turso db create heb-planner
-   turso db show heb-planner --url           # copie o libsql://...
-   turso db tokens create heb-planner        # copie o token
-   ```
-2. **Aplicar o schema** no Turso (uma vez):
-   ```bash
-   turso db shell heb-planner < prisma/schema.sql
-   ```
-3. **Deploy na Vercel**: importe o repositório, defina o **Root Directory** como
-   `planner` e configure as variáveis de ambiente:
-   - `TURSO_DATABASE_URL` = `libsql://...`
-   - `TURSO_AUTH_TOKEN` = token gerado acima
+O banco (tabelas + seed inicial) é montado automaticamente no primeiro build —
+não é preciso rodar nada de banco manualmente.
 
-   O build (`prisma generate && next build`) e o runtime já leem essas variáveis.
+1. Crie o banco no **turso.tech** e gere um token.
+2. Na Vercel: **Add New → Project → Import** do repositório do GitHub.
+3. **Root Directory** = `planner`.
+4. Em **Environment Variables**, adicione:
+   - `TURSO_DATABASE_URL` = `libsql://...`
+   - `TURSO_AUTH_TOKEN` = token do Turso
+   - `DATABASE_URL` = `file:./dev.db` (placeholder; o runtime usa o Turso via adapter)
+5. **Deploy**. O build aplica o schema e popula o Turso na primeira vez.
 
 ## Roadmap (próximos passos sugeridos)
 

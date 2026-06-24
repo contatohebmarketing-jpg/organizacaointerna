@@ -14,7 +14,7 @@ export default async function TarefasPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="display text-4xl text-ink">Minhas tarefas</h1>
+        <h1 className="h-title text-3xl text-ink">Minhas tarefas</h1>
         <p className="text-ink-muted mt-1">Organizadas por prazo, prontas pra dar check.</p>
       </header>
       <TasksView buckets={buckets} done={done} all={all} projects={projects} />

@@ -8,8 +8,8 @@ import KanbanBoard from "./KanbanBoard";
 import AddTask from "./AddTask";
 
 const SECTIONS: { key: keyof Buckets; label: string; tone?: string }[] = [
-  { key: "atrasadas", label: "Atrasadas", tone: "text-[#B14A33]" },
-  { key: "hoje", label: "A fazer hoje", tone: "text-teal" },
+  { key: "atrasadas", label: "Atrasadas", tone: "text-danger" },
+  { key: "hoje", label: "A fazer hoje", tone: "text-accent" },
   { key: "proximos3", label: "Foco dos próximos 3 dias" },
   { key: "semana", label: "Ainda esta semana" },
   { key: "depois", label: "Mais adiante" },
@@ -33,9 +33,9 @@ export default function TasksView({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1 bg-cream-100 rounded-lg p-1">
-          <Toggle active={view === "lista"} onClick={() => setView("lista")}>Lista</Toggle>
-          <Toggle active={view === "quadro"} onClick={() => setView("quadro")}>Quadro</Toggle>
+        <div className="seg">
+          <button data-active={view === "lista"} onClick={() => setView("lista")}>Lista</button>
+          <button data-active={view === "quadro"} onClick={() => setView("quadro")}>Quadro</button>
         </div>
         <AddTask projects={projects} />
       </div>
@@ -59,7 +59,7 @@ export default function TasksView({
 
           {done.length > 0 && (
             <section>
-              <button onClick={() => setShowDone((v) => !v)} className="text-sm font-medium text-ink-muted mb-2 hover:text-ink">
+              <button onClick={() => setShowDone((x) => !x)} className="text-sm font-medium text-ink-muted mb-2 hover:text-ink">
                 {showDone ? "▾" : "▸"} Concluídas · {done.length}
               </button>
               {showDone && (
@@ -69,21 +69,16 @@ export default function TasksView({
               )}
             </section>
           )}
+
+          {all.length === 0 && (
+            <p className="text-sm text-ink-muted py-10 text-center">
+              Nenhuma tarefa ainda. Clique em <b>Nova tarefa</b> pra começar.
+            </p>
+          )}
         </div>
       ) : (
         <KanbanBoard tasks={all} projects={projects} />
       )}
     </div>
-  );
-}
-
-function Toggle({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-md text-sm transition-colors ${active ? "bg-white text-ink shadow-card font-medium" : "text-ink-muted hover:text-ink"}`}
-    >
-      {children}
-    </button>
   );
 }

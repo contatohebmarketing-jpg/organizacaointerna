@@ -20,9 +20,9 @@ export default function ProjectHeader({ project }: { project: ProjectDTO }) {
         <div>
           <div className="flex items-center gap-3">
             <span className="size-4 rounded-full" style={{ backgroundColor: c.hex }} />
-            <h1 className="display text-4xl text-ink">{project.name}</h1>
+            <h1 className="h-title text-3xl text-ink">{project.name}</h1>
           </div>
-          <button onClick={() => setEditing(true)} className="text-xs text-teal hover:underline mt-1 ml-7">
+          <button onClick={() => setEditing(true)} className="text-xs text-accent hover:underline mt-1 ml-7">
             editar projeto
           </button>
         </div>
@@ -52,7 +52,7 @@ export default function ProjectHeader({ project }: { project: ProjectDTO }) {
       <div className="flex items-center justify-between">
         <button
           onClick={() => start(async () => { await deleteProject(project.id); router.push("/projetos"); })}
-          className="text-xs text-[#B14A33] hover:underline"
+          className="text-xs text-danger hover:underline"
         >
           Excluir projeto
         </button>

@@ -12,7 +12,7 @@ export default async function ProjetoPage({ params }: { params: { id: string } }
 
   const now = new Date();
   const [all, projects] = await Promise.all([
-    listTasks({ projectId: params.id }),
+    listTasks({ projects: { some: { id: params.id } } }),
     listProjects(),
   ]);
   const buckets = bucketTasks(all, now);

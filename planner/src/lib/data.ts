@@ -1,9 +1,5 @@
 import { prisma } from "./prisma";
-import {
-  PRIORITY_WEIGHT,
-  ProjectDTO,
-  TaskDTO,
-} from "./types";
+import { PRIORITY_WEIGHT, ProjectDTO, TaskDTO, durationLabel } from "./types";
 import {
   addDays,
   endOfDay,
@@ -14,8 +10,20 @@ import {
   WEEKDAYS_SHORT,
 } from "./date";
 
-type RawTask = Awaited<ReturnType<typeof prisma.task.findMany>>[number] & {
-  project: { id: string; name: string; color: string } | null;
+type RawTask = {
+  id: string;
+  title: string;
+  notes: string | null;
+  status: string;
+  priority: string;
+  dueDate: Date | null;
+  startMin: number | null;
+  durationMin: number;
+  pushCount: number;
+  order: number;
+  completedAt: Date | null;
+  createdAt: Date;
+  projects: { id: string; name: string; color: string }[];
 };
 
 export function serializeTask(t: RawTask): TaskDTO {
@@ -26,11 +34,13 @@ export function serializeTask(t: RawTask): TaskDTO {
     status: t.status as TaskDTO["status"],
     priority: t.priority as TaskDTO["priority"],
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+    startMin: t.startMin,
+    durationMin: t.durationMin,
+    pushCount: t.pushCount,
     completedAt: t.completedAt ? t.completedAt.toISOString() : null,
+    createdAt: t.createdAt.toISOString(),
     order: t.order,
-    project: t.project
-      ? { id: t.project.id, name: t.project.name, color: t.project.color }
-      : null,
+    projects: t.projects.map((p) => ({ id: p.id, name: p.name, color: p.color })),
   };
 }
 
@@ -45,13 +55,12 @@ export async function listProjects(): Promise<ProjectDTO[]> {
 export async function listTasks(where: object = {}): Promise<TaskDTO[]> {
   const tasks = await prisma.task.findMany({
     where,
-    include: { project: true },
+    include: { projects: true },
     orderBy: [{ dueDate: "asc" }, { order: "asc" }, { createdAt: "asc" }],
   });
-  return (tasks as RawTask[]).map(serializeTask);
+  return (tasks as unknown as RawTask[]).map(serializeTask);
 }
 
-// Ordena por prioridade e depois por prazo
 export function byPriority(a: TaskDTO, b: TaskDTO): number {
   const p = PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority];
   if (p !== 0) return p;
@@ -70,21 +79,13 @@ export type Buckets = {
   semData: TaskDTO[];
 };
 
-// Distribui tarefas (não concluídas) em faixas mutuamente exclusivas
 export function bucketTasks(tasks: TaskDTO[], now: Date): Buckets {
   const today0 = startOfDay(now);
   const todayEnd = endOfDay(now);
   const in3 = endOfDay(addDays(now, 3));
   const weekEnd = endOfWeek(now);
 
-  const b: Buckets = {
-    atrasadas: [],
-    hoje: [],
-    proximos3: [],
-    semana: [],
-    depois: [],
-    semData: [],
-  };
+  const b: Buckets = { atrasadas: [], hoje: [], proximos3: [], semana: [], depois: [], semData: [] };
 
   for (const t of tasks) {
     if (t.status === "done") continue;
@@ -106,137 +107,144 @@ export function bucketTasks(tasks: TaskDTO[], now: Date): Buckets {
 
 export type WeekDay = {
   label: string;
-  date: string; // ISO
+  date: string;
   isToday: boolean;
-  due: number; // tarefas com prazo nesse dia
-  done: number; // concluídas nesse dia
+  due: number;
+  done: number;
 };
 
 export type Dashboard = {
   todayTasks: TaskDTO[];
   buckets: Buckets;
   week: WeekDay[];
-  summary: string;
+  headline: string;
+  suggestions: string[];
   stats: {
     overdue: number;
     dueThisWeek: number;
     doneThisWeek: number;
     todayCount: number;
-    weekProgress: number; // 0..100
+    weekProgress: number;
   };
 };
 
 export async function getDashboard(now: Date): Promise<Dashboard> {
   const wkStart = startOfWeek(now);
   const wkEnd = endOfWeek(now);
-
-  const tasks = await listTasks({ project: { is: { archived: false } } });
-  // tarefas sem projeto também entram (project null não casa o filtro acima)
   const all = await listTasks({});
-  const tasksAll = all;
+  const buckets = bucketTasks(all, now);
 
-  const buckets = bucketTasks(tasksAll, now);
+  const todayTasks = [...buckets.hoje, ...buckets.atrasadas].slice().sort(byPriority);
 
-  // Tarefas do dia por ordem de prioridade (hoje + atrasadas que precisam de atenção)
-  const todayTasks = [...buckets.hoje, ...buckets.atrasadas]
-    .slice()
-    .sort(byPriority);
-
-  // Gráfico da semana (Dom..Sáb)
   const week: WeekDay[] = [];
   for (let i = 0; i < 7; i++) {
     const day = addDays(wkStart, i);
-    const due = tasksAll.filter(
-      (t) => t.dueDate && isSameDay(new Date(t.dueDate), day)
-    ).length;
-    const done = tasksAll.filter(
-      (t) => t.completedAt && isSameDay(new Date(t.completedAt), day)
-    ).length;
     week.push({
       label: WEEKDAYS_SHORT[i],
       date: day.toISOString(),
       isToday: isSameDay(day, now),
-      due,
-      done,
+      due: all.filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), day)).length,
+      done: all.filter((t) => t.completedAt && isSameDay(new Date(t.completedAt), day)).length,
     });
   }
 
   const overdue = buckets.atrasadas.length;
-  const dueThisWeek = tasksAll.filter(
-    (t) =>
-      t.status !== "done" &&
-      t.dueDate &&
-      new Date(t.dueDate) >= wkStart &&
-      new Date(t.dueDate) <= wkEnd
+  const dueThisWeek = all.filter(
+    (t) => t.status !== "done" && t.dueDate && new Date(t.dueDate) >= wkStart && new Date(t.dueDate) <= wkEnd
   ).length;
-  const doneThisWeek = tasksAll.filter(
-    (t) =>
-      t.completedAt &&
-      new Date(t.completedAt) >= wkStart &&
-      new Date(t.completedAt) <= wkEnd
+  const doneThisWeek = all.filter(
+    (t) => t.completedAt && new Date(t.completedAt) >= wkStart && new Date(t.completedAt) <= wkEnd
   ).length;
   const totalWeek = dueThisWeek + doneThisWeek;
   const weekProgress = totalWeek === 0 ? 0 : Math.round((doneThisWeek / totalWeek) * 100);
 
-  const summary = buildSummary({
-    overdue,
-    dueThisWeek,
-    doneThisWeek,
-    todayCount: buckets.hoje.length,
-    weekProgress,
-  });
-
-  void tasks; // (mantido para clareza; usamos tasksAll)
+  const { headline, suggestions } = buildInsights(all, now);
 
   return {
     todayTasks,
     buckets,
     week,
-    summary,
+    headline,
+    suggestions,
     stats: { overdue, dueThisWeek, doneThisWeek, todayCount: buckets.hoje.length, weekProgress },
   };
 }
 
-function buildSummary(s: {
-  overdue: number;
-  dueThisWeek: number;
-  doneThisWeek: number;
-  todayCount: number;
-  weekProgress: number;
-}): string {
-  const parts: string[] = [];
+// Analisa o histórico e gera sugestões de produtividade para a próxima semana.
+function buildInsights(all: TaskDTO[], now: Date): { headline: string; suggestions: string[] } {
+  const today0 = startOfDay(now);
+  const nextWkStart = startOfWeek(addDays(now, 7));
+  const nextWkEnd = endOfWeek(addDays(now, 7));
 
-  if (s.overdue === 0 && s.dueThisWeek === 0 && s.doneThisWeek === 0) {
-    return "Sua semana está em branco por aqui. Que tal cadastrar as primeiras tarefas e definir os prazos? Eu te ajudo a manter o ritmo a partir daí.";
+  const open = all.filter((t) => t.status !== "done");
+  const overdue = open.filter((t) => t.dueDate && new Date(t.dueDate) < today0);
+
+  const completed = all.filter((t) => t.completedAt);
+  const completedLate = completed.filter(
+    (t) => t.dueDate && new Date(t.completedAt!) > endOfDay(new Date(t.dueDate))
+  );
+  const completedFast = completed.filter((t) => {
+    const ms = new Date(t.completedAt!).getTime() - new Date(t.createdAt).getTime();
+    return ms <= 24 * 3600 * 1000;
+  });
+
+  // Tarefas que vivem sendo empurradas de um dia pro outro
+  const pushed = open
+    .filter((t) => t.pushCount >= 2)
+    .sort((a, b) => b.pushCount - a.pushCount);
+
+  // Carga (por duração) de cada dia da próxima semana
+  const dayLoad: Record<string, number> = {};
+  for (const t of open) {
+    if (!t.dueDate) continue;
+    const d = new Date(t.dueDate);
+    if (d >= nextWkStart && d <= nextWkEnd) {
+      const key = startOfDay(d).toISOString();
+      dayLoad[key] = (dayLoad[key] || 0) + t.durationMin;
+    }
+  }
+  const heaviest = Object.entries(dayLoad).sort((a, b) => b[1] - a[1])[0];
+
+  const suggestions: string[] = [];
+
+  if (pushed.length > 0) {
+    const top = pushed[0];
+    suggestions.push(
+      `"${top.title}" já foi adiada ${top.pushCount}x. Reserve um horário fixo no início do dia pra ela — tarefas empurradas raramente somem sozinhas.`
+    );
+  }
+  if (completedLate.length >= 2) {
+    suggestions.push(
+      `${completedLate.length} tarefas foram concluídas depois do prazo. Tente colocar prazos com 1 dia de folga, ou quebrar as grandes em partes menores.`
+    );
+  }
+  if (overdue.length >= 3) {
+    suggestions.push(
+      `Você tem ${overdue.length} tarefas atrasadas acumuladas. Comece a próxima semana com um "dia de limpeza" pra zerar o passado antes de pegar o novo.`
+    );
+  }
+  if (heaviest && heaviest[1] >= 6 * 60) {
+    const dia = new Date(heaviest[0]).toLocaleDateString("pt-BR", { weekday: "long" });
+    suggestions.push(
+      `${dia.charAt(0).toUpperCase() + dia.slice(1)} da próxima semana já tem ${durationLabel(heaviest[1])} de compromissos — está lotado. Evite marcar coisas novas nesse dia.`
+    );
+  }
+  if (completedFast.length >= 3) {
+    suggestions.push(
+      `Você fecha tarefas rápidas com facilidade (${completedFast.length} no histórico). Agrupe as pequenas num único bloco do dia pra liberar tempo pras profundas.`
+    );
+  }
+  if (suggestions.length === 0) {
+    suggestions.push(
+      "Conforme você for usando o planner, eu aprendo seus padrões (o que atrasa, o que empaca, dias cheios) e trago sugestões personalizadas aqui."
+    );
   }
 
-  // Tom geral
-  if (s.overdue === 0) {
-    parts.push("Você está em dia — nada atrasado.");
-  } else if (s.overdue <= 2) {
-    parts.push(`Quase tudo sob controle: só ${s.overdue} ${s.overdue === 1 ? "tarefa atrasada" : "tarefas atrasadas"} pedindo atenção.`);
-  } else {
-    parts.push(`Atenção: ${s.overdue} tarefas estão atrasadas. Vale começar por elas hoje.`);
-  }
+  // Headline curta de status
+  let headline: string;
+  if (overdue.length === 0) headline = "Você está em dia — sem nada atrasado. Bom momento pra planejar a frente.";
+  else if (overdue.length <= 2) headline = `Quase tudo sob controle: ${overdue.length} ${overdue.length === 1 ? "tarefa atrasada" : "tarefas atrasadas"}.`;
+  else headline = `Atenção: ${overdue.length} tarefas atrasadas. Vale priorizar elas hoje.`;
 
-  // Carga da semana
-  if (s.dueThisWeek === 0) {
-    parts.push("Não há prazos pendentes para o restante da semana — uma semana mais tranquila.");
-  } else if (s.dueThisWeek <= 4) {
-    parts.push(`Para esta semana, ${s.dueThisWeek} ${s.dueThisWeek === 1 ? "tarefa" : "tarefas"} com prazo — uma carga leve.`);
-  } else {
-    parts.push(`A semana é cheia: ${s.dueThisWeek} tarefas com prazo. Foque nas de prioridade alta primeiro.`);
-  }
-
-  // Progresso
-  if (s.doneThisWeek > 0) {
-    parts.push(`Você já concluiu ${s.doneThisWeek} ${s.doneThisWeek === 1 ? "tarefa" : "tarefas"} esta semana (${s.weekProgress}% do previsto).`);
-  }
-
-  // Hoje
-  if (s.todayCount > 0) {
-    parts.push(`Hoje há ${s.todayCount} ${s.todayCount === 1 ? "tarefa marcada" : "tarefas marcadas"}.`);
-  }
-
-  return parts.join(" ");
+  return { headline, suggestions: suggestions.slice(0, 4) };
 }

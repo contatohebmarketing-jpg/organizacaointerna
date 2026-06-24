@@ -13,17 +13,15 @@ const NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-[210px] shrink-0 px-3 py-6 hidden md:flex flex-col gap-1">
+    <aside className="w-[208px] shrink-0 panel px-3 py-6 hidden md:flex flex-col gap-1 self-start sticky top-5">
       <div className="px-3 mb-6">
-        <span className="display text-2xl text-ink">HEB</span>
-        <span className="display text-2xl text-teal">.planner</span>
+        <span className="h-title text-xl text-ink">HEB</span>
+        <span className="h-title text-xl text-ink-muted"> planner</span>
       </div>
       <nav className="flex flex-col gap-0.5">
         {NAV.map((item) => {
           const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
             <Link

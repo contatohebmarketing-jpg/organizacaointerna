@@ -21,7 +21,7 @@ export default async function ProjetosPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="display text-4xl text-ink">Projetos</h1>
+        <h1 className="h-title text-3xl text-ink">Projetos</h1>
         <p className="text-ink-muted mt-1">Classifique por cor e acompanhe cada frente.</p>
       </header>
       <ProjectsManager projects={data} />

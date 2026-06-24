@@ -1,9 +1,9 @@
 import { TaskDTO, PRIORITY_LABEL } from "@/lib/types";
 
 const STYLE: Record<TaskDTO["priority"], string> = {
-  alta: "bg-[#F6E0DA] text-[#B14A33]",
-  media: "bg-[#F6EED9] text-[#9A7416]",
-  baixa: "bg-[#E8EBEC] text-[#5C6B73]",
+  alta: "bg-[#FBE8E4] text-[#C0392B]",
+  media: "bg-[#FBF0DA] text-[#9A6B11]",
+  baixa: "bg-[#EEF0F2] text-[#5B6470]",
 };
 
 export default function PriorityBadge({ priority }: { priority: TaskDTO["priority"] }) {

@@ -13,10 +13,7 @@ body {
 }
 
 body {
-  background-color: theme("colors.cork");
-  /* leve textura/granulado igual ao fundo do print */
-  background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  background-size: 4px 4px;
+  background-color: theme("colors.canvas");
   color: theme("colors.ink.DEFAULT");
   font-family: theme("fontFamily.sans");
   -webkit-font-smoothing: antialiased;
@@ -24,43 +21,56 @@ body {
 
 @layer components {
   .card {
-    @apply bg-white border border-line rounded-xl shadow-card;
+    @apply bg-surface border border-line rounded-xl shadow-card;
   }
   .panel {
-    @apply bg-cream rounded-2xl;
+    @apply bg-surface rounded-2xl border border-line;
   }
   .stat-label {
-    @apply text-[11px] uppercase tracking-[0.14em] text-ink-muted;
+    @apply text-[11px] uppercase tracking-[0.12em] text-ink-muted;
   }
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-ink-soft text-[15px] transition-colors hover:bg-cream-200;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-ink-soft text-[14px] transition-colors hover:bg-canvas;
   }
   .nav-item-active {
-    @apply bg-cream-200 text-ink font-medium;
+    @apply bg-accent-soft text-accent font-medium;
   }
-  .display {
-    font-family: theme("fontFamily.serif");
-    font-weight: 300;
-    letter-spacing: -0.01em;
+  /* títulos: sans, sem serifa */
+  .h-title {
+    @apply font-semibold tracking-[-0.02em] text-ink;
   }
   .btn-primary {
-    @apply inline-flex items-center gap-2 bg-teal text-white rounded-lg px-3.5 py-2 text-sm font-medium hover:bg-teal-dark transition-colors;
+    @apply inline-flex items-center gap-2 bg-ink text-white rounded-lg px-3.5 py-2 text-sm font-medium hover:bg-black transition-colors;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-cream-200 transition-colors;
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-canvas transition-colors;
   }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
   }
+  .field {
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-accent;
+  }
+  .field-label {
+    @apply text-xs font-medium text-ink-soft;
+  }
+  .seg {
+    @apply inline-flex bg-canvas rounded-lg p-1 gap-1;
+  }
+  .seg button {
+    @apply px-3.5 py-1.5 rounded-md text-sm text-ink-muted transition-colors;
+  }
+  .seg button[data-active="true"] {
+    @apply bg-surface text-ink font-medium shadow-card;
+  }
 }
 
-/* scrollbar discreta */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(43, 42, 39, 0.15);
+  background: rgba(31, 35, 40, 0.16);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;

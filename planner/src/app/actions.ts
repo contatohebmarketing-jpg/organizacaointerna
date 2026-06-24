@@ -10,11 +10,19 @@ function revalidateAll() {
   revalidatePath("/calendario");
 }
 
+function parseDate(d?: string | null): Date | null {
+  if (!d) return null;
+  return new Date(`${d}T00:00:00`);
+}
+
 export async function createTask(input: {
   title: string;
-  projectId?: string | null;
+  notes?: string | null;
+  projectIds?: string[];
   priority?: string;
   dueDate?: string | null;
+  startMin?: number | null;
+  durationMin?: number;
   status?: string;
 }) {
   const title = input.title?.trim();
@@ -22,10 +30,15 @@ export async function createTask(input: {
   await prisma.task.create({
     data: {
       title,
-      projectId: input.projectId || null,
+      notes: input.notes?.trim() || null,
       priority: input.priority || "media",
       status: input.status || "todo",
-      dueDate: input.dueDate ? new Date(input.dueDate) : null,
+      dueDate: parseDate(input.dueDate),
+      startMin: input.startMin ?? null,
+      durationMin: input.durationMin ?? 60,
+      projects: input.projectIds?.length
+        ? { connect: input.projectIds.map((id) => ({ id })) }
+        : undefined,
     },
   });
   revalidateAll();
@@ -34,10 +47,7 @@ export async function createTask(input: {
 export async function toggleTask(id: string, done: boolean) {
   await prisma.task.update({
     where: { id },
-    data: {
-      status: done ? "done" : "todo",
-      completedAt: done ? new Date() : null,
-    },
+    data: { status: done ? "done" : "todo", completedAt: done ? new Date() : null },
   });
   revalidateAll();
 }
@@ -45,10 +55,7 @@ export async function toggleTask(id: string, done: boolean) {
 export async function setTaskStatus(id: string, status: string) {
   await prisma.task.update({
     where: { id },
-    data: {
-      status,
-      completedAt: status === "done" ? new Date() : null,
-    },
+    data: { status, completedAt: status === "done" ? new Date() : null },
   });
   revalidateAll();
 }
@@ -60,18 +67,32 @@ export async function updateTask(
     notes?: string | null;
     priority?: string;
     dueDate?: string | null;
-    projectId?: string | null;
+    startMin?: number | null;
+    durationMin?: number;
+    projectIds?: string[];
   }
 ) {
+  const current = await prisma.task.findUnique({ where: { id } });
+  let pushInc = 0;
+  if (current && data.dueDate !== undefined) {
+    const next = parseDate(data.dueDate);
+    if (current.dueDate && next && next.getTime() > current.dueDate.getTime()) {
+      pushInc = 1; // adiou para frente
+    }
+  }
+
   await prisma.task.update({
     where: { id },
     data: {
       ...(data.title !== undefined ? { title: data.title } : {}),
-      ...(data.notes !== undefined ? { notes: data.notes } : {}),
+      ...(data.notes !== undefined ? { notes: data.notes?.trim() || null } : {}),
       ...(data.priority !== undefined ? { priority: data.priority } : {}),
-      ...(data.projectId !== undefined ? { projectId: data.projectId || null } : {}),
-      ...(data.dueDate !== undefined
-        ? { dueDate: data.dueDate ? new Date(data.dueDate) : null }
+      ...(data.dueDate !== undefined ? { dueDate: parseDate(data.dueDate) } : {}),
+      ...(data.startMin !== undefined ? { startMin: data.startMin } : {}),
+      ...(data.durationMin !== undefined ? { durationMin: data.durationMin } : {}),
+      ...(pushInc ? { pushCount: { increment: pushInc } } : {}),
+      ...(data.projectIds !== undefined
+        ? { projects: { set: data.projectIds.map((id) => ({ id })) } }
         : {}),
     },
   });
@@ -86,14 +107,11 @@ export async function deleteTask(id: string) {
 export async function createProject(input: { name: string; color: string }) {
   const name = input.name?.trim();
   if (!name) return;
-  await prisma.project.create({ data: { name, color: input.color || "teal" } });
+  await prisma.project.create({ data: { name, color: input.color || "blue" } });
   revalidateAll();
 }
 
-export async function updateProject(
-  id: string,
-  data: { name?: string; color?: string }
-) {
+export async function updateProject(id: string, data: { name?: string; color?: string }) {
   await prisma.project.update({ where: { id }, data });
   revalidateAll();
 }

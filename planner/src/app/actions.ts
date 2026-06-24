@@ -12,7 +12,9 @@ function revalidateAll() {
 
 function parseDate(d?: string | null): Date | null {
   if (!d) return null;
-  return new Date(`${d}T00:00:00`);
+  // Guarda como meio-dia UTC: assim o "dia" não muda em fusos de -11h a +11h
+  // (evita o erro de a data aparecer um dia antes no horário do Brasil).
+  return new Date(`${d}T12:00:00.000Z`);
 }
 
 export async function createTask(input: {

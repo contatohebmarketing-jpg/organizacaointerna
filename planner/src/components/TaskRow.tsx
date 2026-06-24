@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { TaskDTO, ProjectDTO, minToHHMM, hhmmToMin, durationLabel } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
 import { dueLabel, toDateInputValue } from "@/lib/format";
@@ -11,6 +12,7 @@ import TaskForm from "./TaskForm";
 export default function TaskRow({ task, projects }: { task: TaskDTO; projects: ProjectDTO[] }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
+  const router = useRouter();
   const done = task.status === "done";
   const due = dueLabel(task.dueDate);
 
@@ -34,7 +36,7 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
           durationMin: task.durationMin,
         }}
         onCancel={() => setOpen(false)}
-        onDelete={() => start(async () => { await deleteTask(task.id); })}
+        onDelete={() => start(async () => { await deleteTask(task.id); router.refresh(); })}
         onSubmit={(v) =>
           start(async () => {
             await updateTask(task.id, {
@@ -46,6 +48,7 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
               durationMin: v.durationMin,
             });
             setOpen(false);
+            router.refresh();
           })
         }
       />
@@ -57,7 +60,7 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
       <div className="flex items-center gap-3 px-3.5 py-2.5">
         <button
           aria-label="concluir"
-          onClick={() => start(() => toggleTask(task.id, !done))}
+          onClick={() => start(async () => { await toggleTask(task.id, !done); router.refresh(); })}
           className={`size-[18px] shrink-0 rounded-[6px] border flex items-center justify-center transition-colors ${
             done ? "bg-accent border-accent text-white" : "border-ink-muted/50 hover:border-accent"
           }`}

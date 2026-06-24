@@ -26,6 +26,15 @@ type RawTask = {
   projects: { id: string; name: string; color: string }[];
 };
 
+// Normaliza um prazo para "meio-dia UTC" do seu dia de calendário, de modo que
+// a extração do dia (local ou UTC) caia sempre no mesmo dia em qualquer fuso.
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+function dayNoonISO(d: Date): string {
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T12:00:00.000Z`;
+}
+
 export function serializeTask(t: RawTask): TaskDTO {
   return {
     id: t.id,
@@ -33,7 +42,7 @@ export function serializeTask(t: RawTask): TaskDTO {
     notes: t.notes,
     status: t.status as TaskDTO["status"],
     priority: t.priority as TaskDTO["priority"],
-    dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+    dueDate: t.dueDate ? dayNoonISO(t.dueDate) : null,
     startMin: t.startMin,
     durationMin: t.durationMin,
     pushCount: t.pushCount,

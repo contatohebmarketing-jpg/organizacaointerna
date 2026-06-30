@@ -45,9 +45,11 @@ export default function AddTask({
             title: v.title,
             notes: v.notes,
             projectIds: v.projectIds,
-            dueDate: v.dueDate || null,
+            dueDate: v.startDate || null,
             startMin: hhmmToMin(v.startTime),
-            durationMin: v.durationMin,
+            endDate: v.endDate || null,
+            endMin: hhmmToMin(v.endTime),
+            repeat: v.repeat,
             status: defaultStatus,
           });
           setOpen(false);

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
-import { PRIORITY_WEIGHT, ProjectDTO, TaskDTO, durationLabel } from "./types";
+import { PRIORITY_WEIGHT, ProjectDTO, TaskDTO, RepeatRule, durationLabel } from "./types";
+import { effectiveDateFor } from "./recurrence";
 import {
   addDays,
   endOfDay,
@@ -18,6 +19,9 @@ type RawTask = {
   priority: string;
   dueDate: Date | null;
   startMin: number | null;
+  endDate: Date | null;
+  endMin: number | null;
+  repeat: string | null;
   durationMin: number;
   pushCount: number;
   order: number;
@@ -44,6 +48,9 @@ export function serializeTask(t: RawTask): TaskDTO {
     priority: t.priority as TaskDTO["priority"],
     dueDate: t.dueDate ? dayNoonISO(t.dueDate) : null,
     startMin: t.startMin,
+    endDate: t.endDate ? dayNoonISO(t.endDate) : null,
+    endMin: t.endMin,
+    repeat: (t.repeat as RepeatRule) || "none",
     durationMin: t.durationMin,
     pushCount: t.pushCount,
     completedAt: t.completedAt ? t.completedAt.toISOString() : null,
@@ -98,11 +105,11 @@ export function bucketTasks(tasks: TaskDTO[], now: Date): Buckets {
 
   for (const t of tasks) {
     if (t.status === "done") continue;
-    if (!t.dueDate) {
+    const d = effectiveDateFor(t, now);
+    if (!d) {
       b.semData.push(t);
       continue;
     }
-    const d = new Date(t.dueDate);
     if (d < today0) b.atrasadas.push(t);
     else if (d <= todayEnd) b.hoje.push(t);
     else if (d <= in3) b.proximos3.push(t);

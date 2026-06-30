@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { TaskDTO, ProjectDTO, STATUS_LABEL, minToHHMM, durationLabel } from "@/lib/types";
+import { TaskDTO, ProjectDTO, STATUS_LABEL, minToHHMM, REPEAT_LABEL } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
 import { dueLabel } from "@/lib/format";
 import { setTaskStatus, toggleTask } from "@/app/actions";
@@ -87,8 +87,13 @@ function KanbanCard({ task, onDragStart }: { task: TaskDTO; onDragStart: () => v
         })}
       </div>
       <div className="flex items-center gap-2 mt-1.5 pl-6 text-[11px] text-ink-muted">
-        {task.startMin !== null && <span>{minToHHMM(task.startMin)} · {durationLabel(task.durationMin)}</span>}
-        {task.dueDate && <span className={due.tone === "late" ? "text-danger" : ""}>· {due.text}</span>}
+        {task.startMin !== null && (
+          <span>{minToHHMM(task.startMin)}{task.endMin !== null ? "–" + minToHHMM(task.endMin) : ""}</span>
+        )}
+        {task.repeat !== "none" && <span className="text-accent">· {REPEAT_LABEL[task.repeat]}</span>}
+        {task.repeat === "none" && task.dueDate && (
+          <span className={due.tone === "late" ? "text-danger" : ""}>· {due.text}</span>
+        )}
       </div>
     </div>
   );

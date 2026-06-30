@@ -4,20 +4,41 @@ export type ProjectDTO = {
   color: string;
 };
 
+export type RepeatRule = "none" | "daily" | "weekdays" | "weekly" | "monthly";
+
 export type TaskDTO = {
   id: string;
   title: string;
   notes: string | null;
   status: "todo" | "doing" | "done";
   priority: "alta" | "media" | "baixa";
-  dueDate: string | null; // ISO (data, meia-noite local)
-  startMin: number | null; // minutos desde a meia-noite; null = sem horário
+  dueDate: string | null; // início (ISO, dia ancorado ao meio-dia UTC)
+  startMin: number | null; // hora de início (min); null = dia todo
+  endDate: string | null; // término (ISO, dia); null = mesmo dia que dueDate
+  endMin: number | null; // hora de término (min); null = sem hora de término
+  repeat: RepeatRule;
   durationMin: number;
   pushCount: number;
   completedAt: string | null;
   createdAt: string;
   order: number;
   projects: ProjectDTO[];
+};
+
+export const REPEAT_OPTIONS: { v: RepeatRule; l: string }[] = [
+  { v: "none", l: "Uma vez" },
+  { v: "daily", l: "Todos os dias" },
+  { v: "weekdays", l: "Dias de semana (seg–sex)" },
+  { v: "weekly", l: "Toda semana" },
+  { v: "monthly", l: "Todo mês" },
+];
+
+export const REPEAT_LABEL: Record<RepeatRule, string> = {
+  none: "",
+  daily: "Diária",
+  weekdays: "Seg–Sex",
+  weekly: "Semanal",
+  monthly: "Mensal",
 };
 
 export const PRIORITY_LABEL: Record<TaskDTO["priority"], string> = {

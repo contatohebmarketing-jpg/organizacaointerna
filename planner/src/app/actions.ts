@@ -17,6 +17,11 @@ function parseDate(d?: string | null): Date | null {
   return new Date(`${d}T12:00:00.000Z`);
 }
 
+function computeDuration(startMin?: number | null, endMin?: number | null): number {
+  if (startMin != null && endMin != null && endMin > startMin) return endMin - startMin;
+  return 60;
+}
+
 export async function createTask(input: {
   title: string;
   notes?: string | null;
@@ -24,11 +29,15 @@ export async function createTask(input: {
   priority?: string;
   dueDate?: string | null;
   startMin?: number | null;
-  durationMin?: number;
+  endDate?: string | null;
+  endMin?: number | null;
+  repeat?: string;
   status?: string;
 }) {
   const title = input.title?.trim();
   if (!title) return;
+  const startMin = input.startMin ?? null;
+  const endMin = input.endMin ?? null;
   await prisma.task.create({
     data: {
       title,
@@ -36,8 +45,11 @@ export async function createTask(input: {
       priority: input.priority || "media",
       status: input.status || "todo",
       dueDate: parseDate(input.dueDate),
-      startMin: input.startMin ?? null,
-      durationMin: input.durationMin ?? 60,
+      startMin,
+      endDate: parseDate(input.endDate),
+      endMin,
+      repeat: input.repeat || "none",
+      durationMin: computeDuration(startMin, endMin),
       projects: input.projectIds?.length
         ? { connect: input.projectIds.map((id) => ({ id })) }
         : undefined,
@@ -70,7 +82,9 @@ export async function updateTask(
     priority?: string;
     dueDate?: string | null;
     startMin?: number | null;
-    durationMin?: number;
+    endDate?: string | null;
+    endMin?: number | null;
+    repeat?: string;
     projectIds?: string[];
   }
 ) {
@@ -83,6 +97,9 @@ export async function updateTask(
     }
   }
 
+  const startMin = data.startMin !== undefined ? data.startMin : current?.startMin ?? null;
+  const endMin = data.endMin !== undefined ? data.endMin : current?.endMin ?? null;
+
   await prisma.task.update({
     where: { id },
     data: {
@@ -91,7 +108,12 @@ export async function updateTask(
       ...(data.priority !== undefined ? { priority: data.priority } : {}),
       ...(data.dueDate !== undefined ? { dueDate: parseDate(data.dueDate) } : {}),
       ...(data.startMin !== undefined ? { startMin: data.startMin } : {}),
-      ...(data.durationMin !== undefined ? { durationMin: data.durationMin } : {}),
+      ...(data.endDate !== undefined ? { endDate: parseDate(data.endDate) } : {}),
+      ...(data.endMin !== undefined ? { endMin: data.endMin } : {}),
+      ...(data.repeat !== undefined ? { repeat: data.repeat } : {}),
+      ...(data.startMin !== undefined || data.endMin !== undefined
+        ? { durationMin: computeDuration(startMin, endMin) }
+        : {}),
       ...(pushInc ? { pushCount: { increment: pushInc } } : {}),
       ...(data.projectIds !== undefined
         ? { projects: { set: data.projectIds.map((id) => ({ id })) } }

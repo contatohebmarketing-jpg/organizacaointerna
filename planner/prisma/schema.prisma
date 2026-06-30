@@ -11,7 +11,7 @@ datasource db {
 model Project {
   id        String   @id @default(cuid())
   name      String
-  color     String   @default("blue") // chave da paleta (ver src/lib/colors.ts)
+  color     String   @default("blue")
   archived  Boolean  @default(false)
   createdAt DateTime @default(now())
   tasks     Task[]   @relation("ProjectTasks")
@@ -20,13 +20,16 @@ model Project {
 model Task {
   id          String    @id @default(cuid())
   title       String
-  notes       String? // "do que se trata" — lembretes/pontos importantes
+  notes       String?
   status      String    @default("todo") // todo | doing | done
   priority    String    @default("media") // alta | media | baixa
-  dueDate     DateTime? // data (meia-noite local)
-  startMin    Int? // minutos desde a meia-noite; null = sem horário
-  durationMin Int       @default(60) // tempo médio de duração
-  pushCount   Int       @default(0) // quantas vezes foi adiada para frente
+  dueDate     DateTime? // data de início (dia, meio-dia UTC)
+  startMin    Int? // hora de início (min desde a meia-noite); null = dia todo
+  endDate     DateTime? // data de término (dia); null = mesmo dia que dueDate
+  endMin      Int? // hora de término (min); null = sem hora de término
+  repeat      String    @default("none") // none | daily | weekdays | weekly | monthly
+  durationMin Int       @default(60) // fallback p/ bloco quando não há endMin
+  pushCount   Int       @default(0)
   order       Int       @default(0)
   completedAt DateTime?
   createdAt   DateTime  @default(now())

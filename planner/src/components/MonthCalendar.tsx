@@ -1,7 +1,13 @@
-import { TaskDTO } from "@/lib/types";
+import { TaskDTO, minToHHMM } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
-import { minToHHMM } from "@/lib/types";
+import { occurrencesInRange } from "@/lib/recurrence";
 import { monthGrid, WEEKDAYS_SHORT, isSameDay } from "@/lib/date";
+
+function keyOf(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+type Item = { task: TaskDTO; startMin: number | null; multiDay: boolean };
 
 export default function MonthCalendar({
   month,
@@ -13,13 +19,21 @@ export default function MonthCalendar({
   compact?: boolean;
 }) {
   const grid = monthGrid(month);
+  const flat = grid.flat();
+  const rangeStart = flat[0];
+  const rangeEnd = flat[flat.length - 1];
   const now = new Date();
   const monthIndex = month.getMonth();
 
-  const tasksByDay = (day: Date) =>
-    tasks
-      .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), day))
-      .sort((a, b) => (a.startMin ?? 9999) - (b.startMin ?? 9999));
+  const byDay = new Map<string, Item[]>();
+  for (const t of tasks) {
+    for (const occ of occurrencesInRange(t, rangeStart, rangeEnd)) {
+      const k = keyOf(occ.date);
+      if (!byDay.has(k)) byDay.set(k, []);
+      byDay.get(k)!.push({ task: t, startMin: occ.startMin, multiDay: occ.multiDay });
+    }
+  }
+  for (const arr of byDay.values()) arr.sort((a, b) => (a.startMin ?? 9999) - (b.startMin ?? 9999));
 
   return (
     <div>
@@ -29,10 +43,10 @@ export default function MonthCalendar({
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1">
-        {grid.flat().map((day, i) => {
+        {flat.map((day, i) => {
           const inMonth = day.getMonth() === monthIndex;
           const today = isSameDay(day, now);
-          const dayTasks = tasksByDay(day);
+          const items = byDay.get(keyOf(day)) ?? [];
           const max = compact ? 0 : 6;
           return (
             <div
@@ -45,31 +59,32 @@ export default function MonthCalendar({
                 <span className={`text-xs grid place-items-center size-6 rounded-full ${today ? "bg-accent text-white font-semibold" : "text-ink-soft"}`}>
                   {day.getDate()}
                 </span>
-                {compact && dayTasks.length > 0 && (
+                {compact && items.length > 0 && (
                   <span className="flex gap-0.5">
-                    {dayTasks.slice(0, 3).map((t) => (
-                      <span key={t.id} className="size-1.5 rounded-full" style={{ backgroundColor: colorFor(t.projects[0]?.color).hex }} />
+                    {items.slice(0, 3).map((it, j) => (
+                      <span key={j} className="size-1.5 rounded-full" style={{ backgroundColor: colorFor(it.task.projects[0]?.color).hex }} />
                     ))}
                   </span>
                 )}
               </div>
               {!compact && (
                 <div className="mt-1 flex flex-col gap-1">
-                  {dayTasks.slice(0, max).map((t) => {
-                    const c = colorFor(t.projects[0]?.color);
+                  {items.slice(0, max).map((it, j) => {
+                    const c = colorFor(it.task.projects[0]?.color);
                     return (
                       <div
-                        key={t.id}
-                        className={`text-[11px] leading-tight rounded px-1.5 py-1 break-words ${t.status === "done" ? "line-through opacity-60" : ""}`}
+                        key={j}
+                        className={`text-[11px] leading-tight rounded px-1.5 py-1 break-words ${it.task.status === "done" ? "line-through opacity-60" : ""}`}
                         style={{ backgroundColor: c.soft, color: c.hex }}
-                        title={t.title}
+                        title={it.task.title}
                       >
-                        {t.startMin !== null && <span className="font-medium">{minToHHMM(t.startMin)} </span>}
-                        {t.title}
+                        {it.multiDay && <span className="font-medium">• </span>}
+                        {it.startMin !== null && <span className="font-medium">{minToHHMM(it.startMin)} </span>}
+                        {it.task.title}
                       </div>
                     );
                   })}
-                  {dayTasks.length > max && <span className="text-[10px] text-ink-muted px-1">+{dayTasks.length - max}</span>}
+                  {items.length > max && <span className="text-[10px] text-ink-muted px-1">+{items.length - max}</span>}
                 </div>
               )}
             </div>

@@ -7,6 +7,29 @@ export function isOccurrenceDone(task: TaskDTO, date: Date): boolean {
   return task.completions.includes(dayKey(date));
 }
 
+// Sequência de conclusões consecutivas de um hábito (dias esperados seguidos).
+// O dia de hoje pendente não quebra a sequência (ainda dá tempo de fazer).
+export function currentStreak(task: TaskDTO, now: Date): number {
+  if (task.repeat === "none" || !task.dueDate) return 0;
+  const startDay = startOfDay(new Date(task.dueDate));
+  const today = startOfDay(now);
+  const done = new Set(task.completions);
+  let streak = 0;
+  for (let i = 0; i < 400; i++) {
+    const day = addDays(today, -i);
+    if (day < startDay && !isSameDay(day, startDay)) break;
+    if (!matchesRule(task.repeat, day, startDay)) continue;
+    if (done.has(dayKey(day))) {
+      streak++;
+    } else if (isSameDay(day, today)) {
+      continue; // hoje ainda pendente não quebra
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
 export type Occurrence = {
   date: Date; // dia da ocorrência
   startMin: number | null;

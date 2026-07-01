@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TaskDTO, ProjectDTO, minToHHMM, hhmmToMin, REPEAT_LABEL } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
-import { isMultiDay, effectiveDateFor, isOccurrenceDone } from "@/lib/recurrence";
+import { isMultiDay, effectiveDateFor, isOccurrenceDone, currentStreak } from "@/lib/recurrence";
 import { dayKey } from "@/lib/date";
 import { dueLabel, toDateInputValue } from "@/lib/format";
 import { toggleTask, toggleOccurrence, updateTask, deleteTask } from "@/app/actions";
@@ -23,6 +23,7 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
   const occDate = recurring ? effectiveDateFor(task, new Date()) : null;
   const done = occDate ? isOccurrenceDone(task, occDate) : task.status === "done";
   const multi = isMultiDay(task);
+  const streak = recurring ? currentStreak(task, new Date()) : 0;
 
   function toggle() {
     start(async () => {
@@ -123,6 +124,7 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
               </span>
             );
           })}
+          {streak > 0 && <span className="chip bg-[#FFF1E6] text-[#C2410C]">🔥 {streak}</span>}
           {!done && <PriorityBadge priority={task.priority} />}
           <span className={`text-xs ${rightTone} w-24 text-right`}>{rightText}</span>
         </div>

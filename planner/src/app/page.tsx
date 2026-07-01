@@ -1,8 +1,9 @@
 import { getDashboard, listProjects, listTasks } from "@/lib/data";
-import { greetingFor } from "@/lib/date";
+import { greetingFor, monthTitle } from "@/lib/date";
 import TaskRow from "@/components/TaskRow";
 import WeekChart from "@/components/WeekChart";
-import MonthCalendar, { monthTitle } from "@/components/MonthCalendar";
+import MonthCalendar from "@/components/MonthCalendar";
+import FocoDoDia from "@/components/FocoDoDia";
 
 export const dynamic = "force-dynamic";
 
@@ -53,9 +54,12 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <section className="lg:col-span-3 card p-5">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
             <h2 className="h-title text-lg">Prioridades de hoje</h2>
-            <a href="/tarefas" className="text-xs text-accent hover:underline">ver todas</a>
+            <div className="flex items-center gap-2">
+              <FocoDoDia tasks={dash.todayTasks} dateLabel={now.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} />
+              <a href="/tarefas" className="text-xs text-accent hover:underline">ver todas</a>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             {dash.todayTasks.length === 0 ? (

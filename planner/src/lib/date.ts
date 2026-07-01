@@ -58,6 +58,10 @@ export const MONTHS_PT = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
+export function monthTitle(d: Date): string {
+  return d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+}
+
 export function formatDayMonth(d: Date): string {
   return `${d.getDate()} ${MONTHS_PT[d.getMonth()].slice(0, 3).toLowerCase()}`;
 }

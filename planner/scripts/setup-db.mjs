@@ -22,7 +22,8 @@ for (const stmt of statements) {
   try {
     await client.execute(stmt);
   } catch (e) {
-    if (!/already exists/i.test(String(e?.message || e))) {
+    // "no such column" pode ocorrer p/ índices de colunas que só existem após os ALTERs abaixo
+    if (!/already exists|no such column|duplicate column/i.test(String(e?.message || e))) {
       console.error("Erro aplicando schema:", String(e?.message || e));
       process.exit(1);
     }
@@ -34,11 +35,14 @@ const alters = [
   `ALTER TABLE "Task" ADD COLUMN "endDate" DATETIME`,
   `ALTER TABLE "Task" ADD COLUMN "endMin" INTEGER`,
   `ALTER TABLE "Task" ADD COLUMN "repeat" TEXT NOT NULL DEFAULT 'none'`,
+  `ALTER TABLE "Task" ADD COLUMN "source" TEXT`,
+  `ALTER TABLE "Task" ADD COLUMN "externalId" TEXT`,
+  `CREATE UNIQUE INDEX "Task_externalId_key" ON "Task"("externalId")`,
 ];
 for (const a of alters) {
   try {
     await client.execute(a);
-    console.log("[setup-db] coluna adicionada:", a.match(/COLUMN "(\w+)"/)?.[1]);
+    console.log("[setup-db] migração:", a.slice(0, 46));
   } catch (e) {
     if (!/duplicate column|already exists/i.test(String(e?.message || e))) {
       console.error("Erro no ALTER:", String(e?.message || e));

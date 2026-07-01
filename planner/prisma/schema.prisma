@@ -33,6 +33,8 @@ model Task {
   order       Int       @default(0)
   completedAt DateTime?
   createdAt   DateTime  @default(now())
+  source      String? // origem: "read" (reunião), "claude", etc.
+  externalId  String?   @unique // id externo p/ evitar duplicatas na importação
   projects    Project[] @relation("ProjectTasks")
   completions TaskCompletion[]
 }

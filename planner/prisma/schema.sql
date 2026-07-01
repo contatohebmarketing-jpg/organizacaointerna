@@ -23,7 +23,9 @@ CREATE TABLE "Task" (
     "pushCount" INTEGER NOT NULL DEFAULT 0,
     "order" INTEGER NOT NULL DEFAULT 0,
     "completedAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "source" TEXT,
+    "externalId" TEXT
 );
 
 -- CreateTable
@@ -41,6 +43,9 @@ CREATE TABLE "_ProjectTasks" (
     CONSTRAINT "_ProjectTasks_A_fkey" FOREIGN KEY ("A") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "_ProjectTasks_B_fkey" FOREIGN KEY ("B") REFERENCES "Task" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Task_externalId_key" ON "Task"("externalId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TaskCompletion_taskId_date_key" ON "TaskCompletion"("taskId", "date");

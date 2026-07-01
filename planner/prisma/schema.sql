@@ -27,12 +27,23 @@ CREATE TABLE "Task" (
 );
 
 -- CreateTable
+CREATE TABLE "TaskCompletion" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "taskId" TEXT NOT NULL,
+    "date" DATETIME NOT NULL,
+    CONSTRAINT "TaskCompletion_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "_ProjectTasks" (
     "A" TEXT NOT NULL,
     "B" TEXT NOT NULL,
     CONSTRAINT "_ProjectTasks_A_fkey" FOREIGN KEY ("A") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "_ProjectTasks_B_fkey" FOREIGN KEY ("B") REFERENCES "Task" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TaskCompletion_taskId_date_key" ON "TaskCompletion"("taskId", "date");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "_ProjectTasks_AB_unique" ON "_ProjectTasks"("A", "B");

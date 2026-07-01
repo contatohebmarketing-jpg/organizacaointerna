@@ -34,4 +34,15 @@ model Task {
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   projects    Project[] @relation("ProjectTasks")
+  completions TaskCompletion[]
+}
+
+// Conclusão por dia de uma tarefa recorrente (comportamento de hábito)
+model TaskCompletion {
+  id     String   @id @default(cuid())
+  taskId String
+  date   DateTime // dia concluído (meio-dia UTC)
+  task   Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, date])
 }

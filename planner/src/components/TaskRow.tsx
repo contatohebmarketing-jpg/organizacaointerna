@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TaskDTO, ProjectDTO, minToHHMM, hhmmToMin, REPEAT_LABEL } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
-import { isMultiDay } from "@/lib/recurrence";
+import { isMultiDay, effectiveDateFor, isOccurrenceDone } from "@/lib/recurrence";
+import { dayKey } from "@/lib/date";
 import { dueLabel, toDateInputValue } from "@/lib/format";
-import { toggleTask, updateTask, deleteTask } from "@/app/actions";
+import { toggleTask, toggleOccurrence, updateTask, deleteTask } from "@/app/actions";
 import PriorityBadge from "./PriorityBadge";
 import TaskForm from "./TaskForm";
 
@@ -18,8 +19,18 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
-  const done = task.status === "done";
+  const recurring = task.repeat !== "none";
+  const occDate = recurring ? effectiveDateFor(task, new Date()) : null;
+  const done = occDate ? isOccurrenceDone(task, occDate) : task.status === "done";
   const multi = isMultiDay(task);
+
+  function toggle() {
+    start(async () => {
+      if (recurring && occDate) await toggleOccurrence(task.id, dayKey(occDate), !done);
+      else await toggleTask(task.id, !done);
+      router.refresh();
+    });
+  }
 
   // tempo / período
   const timeStr =
@@ -85,7 +96,7 @@ export default function TaskRow({ task, projects }: { task: TaskDTO; projects: P
       <div className="flex items-center gap-3 px-3.5 py-2.5">
         <button
           aria-label="concluir"
-          onClick={() => start(async () => { await toggleTask(task.id, !done); router.refresh(); })}
+          onClick={toggle}
           className={`size-[18px] shrink-0 rounded-[6px] border flex items-center justify-center transition-colors ${
             done ? "bg-accent border-accent text-white" : "border-ink-muted/50 hover:border-accent"
           }`}

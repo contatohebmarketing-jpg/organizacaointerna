@@ -1,13 +1,13 @@
 import { TaskDTO, minToHHMM } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
-import { occurrencesInRange } from "@/lib/recurrence";
+import { occurrencesInRange, isOccurrenceDone } from "@/lib/recurrence";
 import { monthGrid, WEEKDAYS_SHORT, isSameDay } from "@/lib/date";
 
 function keyOf(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-type Item = { task: TaskDTO; startMin: number | null; multiDay: boolean };
+type Item = { task: TaskDTO; date: Date; startMin: number | null; multiDay: boolean };
 
 export default function MonthCalendar({
   month,
@@ -30,7 +30,7 @@ export default function MonthCalendar({
     for (const occ of occurrencesInRange(t, rangeStart, rangeEnd)) {
       const k = keyOf(occ.date);
       if (!byDay.has(k)) byDay.set(k, []);
-      byDay.get(k)!.push({ task: t, startMin: occ.startMin, multiDay: occ.multiDay });
+      byDay.get(k)!.push({ task: t, date: occ.date, startMin: occ.startMin, multiDay: occ.multiDay });
     }
   }
   for (const arr of byDay.values()) arr.sort((a, b) => (a.startMin ?? 9999) - (b.startMin ?? 9999));
@@ -71,10 +71,11 @@ export default function MonthCalendar({
                 <div className="mt-1 flex flex-col gap-1">
                   {items.slice(0, max).map((it, j) => {
                     const c = colorFor(it.task.projects[0]?.color);
+                    const doneHere = isOccurrenceDone(it.task, it.date);
                     return (
                       <div
                         key={j}
-                        className={`text-[11px] leading-tight rounded px-1.5 py-1 break-words ${it.task.status === "done" ? "line-through opacity-60" : ""}`}
+                        className={`text-[11px] leading-tight rounded px-1.5 py-1 break-words ${doneHere ? "line-through opacity-60" : ""}`}
                         style={{ backgroundColor: c.soft, color: c.hex }}
                         title={it.task.title}
                       >

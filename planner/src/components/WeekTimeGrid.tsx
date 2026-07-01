@@ -1,6 +1,6 @@
 import { TaskDTO, minToHHMM } from "@/lib/types";
 import { colorFor } from "@/lib/colors";
-import { occurrencesInRange } from "@/lib/recurrence";
+import { occurrencesInRange, isOccurrenceDone } from "@/lib/recurrence";
 import { startOfWeek, endOfWeek, addDays, WEEKDAYS_SHORT, isSameDay } from "@/lib/date";
 
 const START_HOUR = 6;
@@ -9,9 +9,10 @@ const HOUR_PX = 46;
 const TOTAL_MIN = (END_HOUR - START_HOUR) * 60;
 const GRID_H = (END_HOUR - START_HOUR) * HOUR_PX;
 
-type Timed = { task: TaskDTO; start: number; end: number; col: number; cols: number };
+type TimedItem = { task: TaskDTO; start: number; end: number; done: boolean };
+type Timed = TimedItem & { col: number; cols: number };
 
-function layout(items: { task: TaskDTO; start: number; end: number }[]): Timed[] {
+function layout(items: TimedItem[]): Timed[] {
   const evs = items.slice().sort((a, b) => a.start - b.start || a.end - b.end);
   const placed: Timed[] = [];
   let i = 0;
@@ -46,17 +47,18 @@ export default function WeekTimeGrid({ anchor, tasks }: { anchor: Date; tasks: T
   const nowTop = ((nowMin - START_HOUR * 60) / TOTAL_MIN) * GRID_H;
 
   // distribui ocorrências da semana em "com horário" (bloco) e "dia todo/multi-dias"
-  const timed: { task: TaskDTO; start: number; end: number }[][] = days.map(() => []);
-  const allday: TaskDTO[][] = days.map(() => []);
+  const timed: TimedItem[][] = days.map(() => []);
+  const allday: { task: TaskDTO; done: boolean }[][] = days.map(() => []);
   for (const t of tasks) {
     for (const occ of occurrencesInRange(t, wkStart, wkEnd)) {
       const di = days.findIndex((d) => isSameDay(d, occ.date));
       if (di < 0) continue;
+      const done = isOccurrenceDone(t, occ.date);
       if (occ.startMin !== null && !occ.multiDay) {
         const end = occ.endMin !== null && occ.endMin > occ.startMin ? occ.endMin : occ.startMin + t.durationMin;
-        timed[di].push({ task: t, start: occ.startMin, end });
+        timed[di].push({ task: t, start: occ.startMin, end, done });
       } else {
-        allday[di].push(t);
+        allday[di].push({ task: t, done });
       }
     }
   }
@@ -83,11 +85,11 @@ export default function WeekTimeGrid({ anchor, tasks }: { anchor: Date; tasks: T
           <div className="text-right pr-1 py-1 text-[10px] text-ink-muted">dia todo</div>
           {days.map((_, i) => (
             <div key={i} className="border-l border-line2 p-1 flex flex-col gap-1 min-h-[28px]">
-              {allday[i].map((t, k) => {
-                const c = colorFor(t.projects[0]?.color);
+              {allday[i].map((it, k) => {
+                const c = colorFor(it.task.projects[0]?.color);
                 return (
-                  <div key={k} className={`text-[11px] leading-tight rounded px-1.5 py-0.5 break-words ${t.status === "done" ? "line-through opacity-60" : ""}`} style={{ backgroundColor: c.soft, color: c.hex }} title={t.title}>
-                    {t.title}
+                  <div key={k} className={`text-[11px] leading-tight rounded px-1.5 py-0.5 break-words ${it.done ? "line-through opacity-60" : ""}`} style={{ backgroundColor: c.soft, color: c.hex }} title={it.task.title}>
+                    {it.task.title}
                   </div>
                 );
               })}
@@ -124,7 +126,7 @@ export default function WeekTimeGrid({ anchor, tasks }: { anchor: Date; tasks: T
                 const top = ((p.start - START_HOUR * 60) / TOTAL_MIN) * GRID_H;
                 const height = Math.max(((p.end - p.start) / TOTAL_MIN) * GRID_H, 22);
                 const widthPct = 100 / p.cols;
-                const done = p.task.status === "done";
+                const done = p.done;
                 return (
                   <div
                     key={k}

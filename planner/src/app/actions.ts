@@ -66,6 +66,22 @@ export async function toggleTask(id: string, done: boolean) {
   revalidateAll();
 }
 
+// Conclui (ou desmarca) a ocorrência de uma tarefa recorrente num dia específico
+export async function toggleOccurrence(taskId: string, dateISO: string, done: boolean) {
+  const date = parseDate(dateISO);
+  if (!date) return;
+  if (done) {
+    await prisma.taskCompletion.upsert({
+      where: { taskId_date: { taskId, date } },
+      create: { taskId, date },
+      update: {},
+    });
+  } else {
+    await prisma.taskCompletion.deleteMany({ where: { taskId, date } });
+  }
+  revalidateAll();
+}
+
 export async function setTaskStatus(id: string, status: string) {
   await prisma.task.update({
     where: { id },

@@ -1,5 +1,11 @@
-import { startOfDay, addDays, isSameDay } from "./date";
+import { startOfDay, addDays, isSameDay, dayKey } from "./date";
 import { TaskDTO, RepeatRule } from "./types";
+
+// Uma tarefa recorrente está concluída num dia se houver registro daquele dia.
+export function isOccurrenceDone(task: TaskDTO, date: Date): boolean {
+  if (task.repeat === "none") return task.status === "done";
+  return task.completions.includes(dayKey(date));
+}
 
 export type Occurrence = {
   date: Date; // dia da ocorrência

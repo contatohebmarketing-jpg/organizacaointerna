@@ -23,6 +23,7 @@ export type TaskDTO = {
   createdAt: string;
   order: number;
   projects: ProjectDTO[];
+  completions: string[]; // dias concluídos (chaves AAAA-MM-DD) p/ tarefas recorrentes
 };
 
 export const REPEAT_OPTIONS: { v: RepeatRule; l: string }[] = [

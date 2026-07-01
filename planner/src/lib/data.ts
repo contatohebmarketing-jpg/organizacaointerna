@@ -3,6 +3,7 @@ import { PRIORITY_WEIGHT, ProjectDTO, TaskDTO, RepeatRule, durationLabel } from 
 import { effectiveDateFor } from "./recurrence";
 import {
   addDays,
+  dayKey,
   endOfDay,
   endOfWeek,
   isSameDay,
@@ -28,6 +29,7 @@ type RawTask = {
   completedAt: Date | null;
   createdAt: Date;
   projects: { id: string; name: string; color: string }[];
+  completions?: { date: Date }[];
 };
 
 // Normaliza um prazo para "meio-dia UTC" do seu dia de calendário, de modo que
@@ -57,6 +59,7 @@ export function serializeTask(t: RawTask): TaskDTO {
     createdAt: t.createdAt.toISOString(),
     order: t.order,
     projects: t.projects.map((p) => ({ id: p.id, name: p.name, color: p.color })),
+    completions: (t.completions ?? []).map((c) => dayKey(c.date)),
   };
 }
 
@@ -71,7 +74,7 @@ export async function listProjects(): Promise<ProjectDTO[]> {
 export async function listTasks(where: object = {}): Promise<TaskDTO[]> {
   const tasks = await prisma.task.findMany({
     where,
-    include: { projects: true },
+    include: { projects: true, completions: true },
     orderBy: [{ dueDate: "asc" }, { order: "asc" }, { createdAt: "asc" }],
   });
   return (tasks as unknown as RawTask[]).map(serializeTask);

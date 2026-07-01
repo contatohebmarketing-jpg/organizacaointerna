@@ -6,6 +6,12 @@ export function startOfDay(d: Date): Date {
   return x;
 }
 
+// Chave "AAAA-MM-DD" de um dia (usada para casar ocorrências e conclusões)
+export function dayKey(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export function endOfDay(d: Date): Date {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
